@@ -11,11 +11,14 @@ from matplotlib import pyplot as plt
 from datetime import datetime
 
 # Data Collection and Preprocessing
+
+
 def fetch_cryptocurrency_data(exchange_name, cryptocurrency, timeframe):
     url = f"https://api.{exchange_name}.com/data/v2/histohour?symbol={cryptocurrency}&limit=1000&aggregate={timeframe}"
     response = requests.get(url)
     data = response.json()
     return data['Data']['Data']
+
 
 def preprocess_data(data):
     df = pd.DataFrame(data)
@@ -25,6 +28,7 @@ def preprocess_data(data):
     df.fillna(method="ffill", inplace=True)
     df.fillna(method="bfill", inplace=True)
     return df
+
 
 exchange_name = 'example_exchange'  # Replace with actual exchange name
 cryptocurrency = 'BTC'  # Replace with actual cryptocurrency symbol
@@ -36,10 +40,12 @@ df = preprocess_data(data)
 # Sentiment Analysis
 nltk.download('vader_lexicon')
 
+
 def analyze_sentiment(text):
     sia = SentimentIntensityAnalyzer()
     sentiment = sia.polarity_scores(text)
     return sentiment['compound']
+
 
 def calculate_average_sentiment_score(texts):
     total_score = 0
@@ -47,16 +53,20 @@ def calculate_average_sentiment_score(texts):
         total_score += analyze_sentiment(text)
     return total_score / len(texts)
 
+
 sample_texts = ['This is great!', 'I am not sure.', 'Awesome project!']
 average_sentiment_score = calculate_average_sentiment_score(sample_texts)
 print("Average Sentiment Score:", average_sentiment_score)
 
 # Technical Analysis
+
+
 def calculate_technical_indicators(df):
     df['MA'] = df['close'].rolling(window=20).mean()
     df['RSI'] = calculate_rsi(df['close'], 14)
     df['Bollinger Bands'] = calculate_bollinger_bands(df['close'], window=20)
     return df
+
 
 def calculate_rsi(close_prices, window):
     delta = close_prices.diff()
@@ -69,6 +79,7 @@ def calculate_rsi(close_prices, window):
     rsi = 100 - (100 / (1 + rs))
     return rsi
 
+
 def calculate_bollinger_bands(close_prices, window):
     rolling_mean = close_prices.rolling(window).mean()
     rolling_std = close_prices.rolling(window).std()
@@ -76,11 +87,13 @@ def calculate_bollinger_bands(close_prices, window):
     lower_band = rolling_mean - (2 * rolling_std)
     return upper_band, lower_band
 
+
 df = calculate_technical_indicators(df)
 
 # Machine Learning
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaled_data = scaler.fit_transform(df[['close']].values)
+
 
 def prepare_train_data(data, num_time_steps):
     X, y = [], []
@@ -89,13 +102,16 @@ def prepare_train_data(data, num_time_steps):
         y.append(data[i, 0])
     return np.array(X), np.array(y)
 
+
 def create_lstm_model(num_time_steps):
     model = Sequential()
-    model.add(LSTM(units=50, return_sequences=True, input_shape=(num_time_steps, 1)))
+    model.add(LSTM(units=50, return_sequences=True,
+              input_shape=(num_time_steps, 1)))
     model.add(LSTM(units=50))
     model.add(Dense(units=1))
     model.compile(optimizer='adam', loss='mean_squared_error')
     return model
+
 
 num_time_steps = 60  # Replace with desired number of time steps
 
@@ -106,12 +122,15 @@ model = create_lstm_model(num_time_steps)
 model.fit(X_train, y_train, epochs=10, batch_size=32, shuffle=True)
 
 # Trading Strategy Execution
+
+
 def execute_trading_strategy(data):
     signals = np.zeros(len(data))
     for i in range(num_time_steps, len(data)):
         prev_data = data[i - num_time_steps:i, :]
         prev_data_scaled = scaler.transform(prev_data)
-        prev_data_reshaped = np.reshape(prev_data_scaled, (1, prev_data_scaled.shape[0], prev_data_scaled.shape[1]))
+        prev_data_reshaped = np.reshape(
+            prev_data_scaled, (1, prev_data_scaled.shape[0], prev_data_scaled.shape[1]))
         predicted_price = model.predict(prev_data_reshaped)
         if predicted_price > data[i - 1]:
             signals[i] = 1  # Buy signal
@@ -119,9 +138,12 @@ def execute_trading_strategy(data):
             signals[i] = -1  # Sell signal
     return signals
 
+
 df['Signals'] = execute_trading_strategy(scaled_data)
 
 # Performance Evaluation
+
+
 def calculate_performance_metrics(data, signals):
     investment_return = np.cumsum(np.diff(data['close']) * signals[:-1])
     sharpe_ratio = np.mean(investment_return) / np.std(investment_return)
@@ -130,9 +152,13 @@ def calculate_performance_metrics(data, signals):
     max_drawdown = np.max(drawdown)
     return investment_return, sharpe_ratio, drawdown, max_drawdown
 
-investment_return, sharpe_ratio, drawdown, max_drawdown = calculate_performance_metrics(df, df['Signals'])
+
+investment_return, sharpe_ratio, drawdown, max_drawdown = calculate_performance_metrics(
+    df, df['Signals'])
 
 # Visualizations
+
+
 def plot_performance(data, investment_return, drawdown):
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
     ax1.plot(data.index, data['close'])
@@ -147,9 +173,12 @@ def plot_performance(data, investment_return, drawdown):
     plt.tight_layout()
     plt.show()
 
+
 plot_performance(df, investment_return, drawdown)
 
 # Reporting
+
+
 def generate_report(data, investment_return, sharpe_ratio, max_drawdown):
     report = f"Report generated on: {datetime.now()}\n"
     report += f"Exchange: {exchange_name}\n"
@@ -169,6 +198,7 @@ def generate_report(data, investment_return, sharpe_ratio, max_drawdown):
     report += f"{data.head()}\n\n"
 
     return report
+
 
 report = generate_report(df, investment_return, sharpe_ratio, max_drawdown)
 print(report)
